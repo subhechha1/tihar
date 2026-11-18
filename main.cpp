@@ -7,25 +7,6 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QFrame>
-#include <QFont>
-#include <QGraphicsDropShadowEffect>
-
-QLabel* createLabel(QString text, int size, QString color,
-                    bool bold = false)
-{
-    QLabel* label = new QLabel(text);
-
-    QFont font("Segoe UI", size);
-    font.setBold(bold);
-
-    label->setFont(font);
-    label->setStyleSheet("color: " + color + ";");
-    label->setAlignment(Qt::AlignCenter);
-
-    return label;
-}
-
-QPushButton* createButton(QString text)
 #include <QPainter>
 #include <QMouseEvent>
 #include <QMessageBox>
