@@ -1,11 +1,11 @@
 
-
 #include <QApplication>
 #include <QWidget>
 #include <QLabel>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QGridLayout>
 #include <QFrame>
 #include <QFont>
 #include <QGraphicsDropShadowEffect>
@@ -26,204 +26,352 @@ QLabel* createLabel(QString text, int size, QString color,
 }
 
 QPushButton* createButton(QString text)
+#include <QPainter>
+#include <QMouseEvent>
+#include <QMessageBox>
+#include <QLinearGradient>
+#include <QRadialGradient>
+#include <QPainterPath>
+#include <QStringList>
+// ---------------- INTERACTIVE DIYA ----------------
+
+class DiyaWidget : public QWidget
 {
-    QPushButton* button = new QPushButton(text);
+public:
+    explicit DiyaWidget(QWidget *parent = nullptr)
+        : QWidget(parent), isLit(false)
+    {
+        setFixedSize(220, 220);
+        setCursor(Qt::PointingHandCursor);
+        setToolTip("Click the diya to light it!");
+    }
 
-    button->setStyleSheet(
-        "QPushButton {"
-        "background-color: #FFC52B;"
-        "color: #211039;"
-        "border-radius: 20px;"
-        "padding: 12px 25px;"
-        "font-size: 15px;"
-        "font-weight: bold;"
-        "}"
-        "QPushButton:hover {"
-        "background-color: #FFE080;"
-        "}"
-        );
+protected:
+    void mousePressEvent(QMouseEvent *event) override
+    {
+        Q_UNUSED(event);
+        isLit = !isLit;
+        update();
+    }
 
-    return button;
-}
 
-QFrame* createCard(QString emoji, QString title, QString description)
+
+    void paintEvent(QPaintEvent *) override
+    {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+
+        // Background
+        painter.setBrush(QColor("#392052"));
+        painter.setPen(Qt::NoPen);
+        painter.drawRoundedRect(rect(), 20, 20);
+
+        // Golden glow when diya is lit
+        if (isLit)
+        {
+            QRadialGradient glow(110, 85, 95);
+            glow.setColorAt(0, QColor(255, 190, 50, 150));
+            glow.setColorAt(0.5, QColor(255, 190, 50, 55));
+            glow.setColorAt(1, QColor(255, 190, 50, 0));
+
+            painter.setBrush(glow);
+            painter.drawEllipse(15, 0, 190, 190);
+        }
+
+        // Diya bowl
+        QLinearGradient bowlGradient(0, 130, 0, 180);
+        bowlGradient.setColorAt(0, QColor("#D97935"));
+        bowlGradient.setColorAt(1, QColor("#8D321F"));
+
+        painter.setBrush(bowlGradient);
+        painter.setPen(QPen(QColor("#87351F"), 2));
+
+        QPainterPath bowl;
+        bowl.moveTo(35, 135);
+        bowl.quadTo(110, 205, 185, 135);
+        bowl.quadTo(110, 155, 35, 135);
+        painter.drawPath(bowl);
+
+        // Oil inside the diya
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(QColor("#F6B94A"));
+        painter.drawEllipse(75, 135, 70, 9);
+
+        // Wick
+        painter.setPen(QPen(QColor("#493025"), 4));
+        painter.drawLine(110, 137, 110, 111);
+
+        // Flame
+        if (isLit)
+        {
+            QRadialGradient flameGlow(110, 85, 45);
+            flameGlow.setColorAt(0, QColor(255, 255, 180, 230));
+            flameGlow.setColorAt(0.5, QColor(255, 166, 35, 180));
+            flameGlow.setColorAt(1, QColor(255, 120, 0, 0));
+
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(flameGlow);
+            painter.drawEllipse(65, 35, 90, 100);
+
+            QLinearGradient flameGradient(0, 55, 0, 125);
+            flameGradient.setColorAt(0, QColor("#FFF9B0"));
+            flameGradient.setColorAt(0.5, QColor("#FFC12F"));
+            flameGradient.setColorAt(1, QColor("#F26A21"));
+
+            painter.setBrush(flameGradient);
+
+            QPainterPath flame;
+            flame.moveTo(110, 55);
+            flame.cubicTo(75, 85, 95, 110, 110, 120);
+            flame.cubicTo(135, 105, 145, 80, 110, 55);
+            painter.drawPath(flame);
+        }
+        else
+        {
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(QColor("#B85A2B"));
+
+            QPainterPath unlitFlame;
+            unlitFlame.moveTo(110, 85);
+            unlitFlame.quadTo(100, 100, 110, 112);
+            unlitFlame.quadTo(120, 100, 110, 85);
+            painter.drawPath(unlitFlame);
+        }
+
+        // Instruction
+        painter.setPen(QColor("#87351F"));
+        QFont font("Arial", 10, QFont::DemiBold);
+        painter.setFont(font);
+
+        painter.drawText(QRect(10, 185, 200, 25),
+                         Qt::AlignCenter,
+                         isLit ? "Your diya is glowing!" : "Click to light the diya");
+    }
+
+private:
+    bool isLit;
+};
+
+// ---------------- INFORMATION CARD ----------------
+
+QFrame* createCard(QString emoji, QString heading, QString description)
 {
-    QFrame* card = new QFrame();
-
+    QFrame *card = new QFrame;
     card->setStyleSheet(
-        "QFrame {"
-        "background-color: #281844;"
-        "border: 1px solid #3B285B;"
-        "border-radius: 18px;"
-        "}"
-        );
+        "QFrame { background-color: #FFF9F1;"
+        "border: 1px solid #E8D7C5;"
+        "border-radius: 15px; }");
 
-    QVBoxLayout* layout = new QVBoxLayout(card);
+    QVBoxLayout *layout = new QVBoxLayout(card);
+    layout->setContentsMargins(18, 18, 18, 18);
 
-    QLabel* icon = createLabel(emoji, 35, "#FFC52B");
-    QLabel* heading = createLabel(title, 18, "#FFC52B", true);
-    QLabel* desc = createLabel(description, 12, "#E6DDF4");
+    QLabel *icon = new QLabel(emoji);
+    icon->setStyleSheet("font-size: 30px; border: none;");
 
-    desc->setWordWrap(true);
+    QLabel *title = new QLabel(heading);
+    title->setStyleSheet(
+        "font-size: 18px; font-weight: bold;"
+        "color: #A83F35; border: none;");
+
+    QLabel *detail = new QLabel(description);
+    detail->setWordWrap(true);
+    detail->setStyleSheet(
+        "font-size: 13px; color: #594A40; border: none;");
 
     layout->addWidget(icon);
-    layout->addWidget(heading);
-    layout->addWidget(desc);
-
-    card->setMinimumHeight(170);
+    layout->addWidget(title);
+    layout->addWidget(detail);
+    layout->addStretch();
 
     return card;
 }
+
+// ---------------- MAIN WINDOW ----------------
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
     QWidget window;
-    window.setWindowTitle("Happy Tihar");
-    window.resize(1200, 800);
-
+    window.setWindowTitle("Tihar Festival");
+    window.resize(1100, 850);
     window.setStyleSheet(
-        "QWidget {"
-        "background-color: #190C2E;"
-        "color: white;"
-        "}"
-        );
+        "QWidget { background-color: #F8F1E8;"
+        "font-family: Arial; }");
 
-    QVBoxLayout* mainLayout = new QVBoxLayout(&window);
-    mainLayout->setContentsMargins(45, 25, 45, 25);
-    mainLayout->setSpacing(25);
+    QVBoxLayout *mainLayout = new QVBoxLayout(&window);
+    mainLayout->setContentsMargins(35, 20, 35, 20);
+    mainLayout->setSpacing(22);
 
-    // NAVIGATION BAR
-    QHBoxLayout* nav = new QHBoxLayout();
+    // Navigation bar
+    QHBoxLayout *navLayout = new QHBoxLayout;
 
-    QLabel* logo = createLabel("🪔 Tihar", 27, "#FFC52B", true);
-    logo->setAlignment(Qt::AlignLeft);
+    QLabel *logo = new QLabel("🪔 TIHAR");
+    logo->setStyleSheet(
+        "font-size: 25px; font-weight: bold;"
+        "color: #A83F35;");
 
-    QPushButton* home = new QPushButton("Home");
-    QPushButton* about = new QPushButton("About");
-    QPushButton* traditions = new QPushButton("Traditions");
-    QPushButton* gallery = new QPushButton("Gallery");
+    navLayout->addWidget(logo);
+    navLayout->addStretch();
 
-    QString navStyle =
-        "QPushButton {"
-        "background: transparent;"
-        "color: white;"
-        "border: none;"
-        "font-size: 15px;"
-        "padding: 10px;"
-        "}"
-        "QPushButton:hover {"
-        "color: #FFC52B;"
-        "}";
+    QStringList navItems = {"Home", "About", "Celebrations", "Contact"};
 
-    home->setStyleSheet(navStyle);
-    about->setStyleSheet(navStyle);
-    traditions->setStyleSheet(navStyle);
-    gallery->setStyleSheet(navStyle);
+    for (const QString &item : navItems)
+    {
+        QPushButton *button = new QPushButton(item);
+        button->setCursor(Qt::PointingHandCursor);
+        button->setStyleSheet(
+            "QPushButton { background: transparent;"
+            "color: #594A40; border: none;"
+            "font-size: 14px; padding: 8px; }"
+            "QPushButton:hover { color: #A83F35; }");
 
-    nav->addWidget(logo);
-    nav->addStretch();
-    nav->addWidget(home);
-    nav->addWidget(about);
-    nav->addWidget(traditions);
-    nav->addWidget(gallery);
-    nav->addStretch();
-    nav->addWidget(createButton("Celebrate Tihar ✨"));
+        navLayout->addWidget(button);
+    }
 
-    mainLayout->addLayout(nav);
+    mainLayout->addLayout(navLayout);
 
-    // HERO SECTION
-    QVBoxLayout* hero = new QVBoxLayout();
-    hero->setSpacing(15);
+    // Hero section
+    QFrame *hero = new QFrame;
+    hero->setStyleSheet(
+        "QFrame { background-color: #F0DFCD;"
+        "border-radius: 22px; }");
 
-    hero->addWidget(
-        createLabel("LIGHTS  •  LOVE  •  TOGETHERNESS",
-                    13, "#D7C5E8"));
+    QHBoxLayout *heroLayout = new QHBoxLayout(hero);
+    heroLayout->setContentsMargins(35, 30, 35, 30);
 
-    QLabel* title = createLabel("Happy Tihar!", 55, "#FFC52B", true);
+    QVBoxLayout *heroText = new QVBoxLayout;
 
-    QFont heroFont("Georgia", 55, QFont::Bold);
-    title->setFont(heroFont);
+    QLabel *welcome = new QLabel("THE FESTIVAL OF LIGHTS");
+    welcome->setStyleSheet(
+        "color: #52704C; font-size: 13px;"
+        "font-weight: bold; border: none;");
 
-    hero->addWidget(title);
+    QLabel *heading = new QLabel("Celebrate the\nSpirit of Tihar");
+    heading->setStyleSheet(
+        "color: #8E352F; font-size: 38px;"
+        "font-weight: bold; border: none;");
 
-    hero->addWidget(
-        createLabel(
-            "May the glow of Tihar bring happiness,\n"
-            "prosperity and peace to you and your family.",
-            17, "#E6DDF4"));
+    QLabel *description = new QLabel(
+        "A beautiful celebration of lights, love,\n"
+        "family, and togetherness. Let every diya\n"
+        "brighten your home and heart.");
+    description->setStyleSheet(
+        "color: #594A40; font-size: 15px;"
+        "line-height: 1.5; border: none;");
 
-    hero->addSpacing(10);
-    hero->addWidget(createButton("Explore the Festival  →"));
+    QPushButton *exploreButton = new QPushButton("Explore Tihar");
+    exploreButton->setFixedSize(145, 42);
+    exploreButton->setCursor(Qt::PointingHandCursor);
+    exploreButton->setStyleSheet(
+        "QPushButton { background-color: #A83F35;"
+        "color: white; border-radius: 10px;"
+        "font-weight: bold; }"
+        "QPushButton:hover { background-color: #873128; }");
 
-    mainLayout->addSpacing(20);
-    mainLayout->addLayout(hero);
-    mainLayout->addSpacing(20);
+    QObject::connect(exploreButton, &QPushButton::clicked,
+                     [&window]() {
+                         QMessageBox::information(&window, "Tihar",
+                                                  "Welcome to the world of Tihar!");
+                     });
 
-    // FESTIVAL HIGHLIGHTS
-    mainLayout->addWidget(
-        createLabel("Festival Highlights", 27, "#FFFFFF", true));
+    heroText->addWidget(welcome);
+    heroText->addSpacing(12);
+    heroText->addWidget(heading);
+    heroText->addSpacing(12);
+    heroText->addWidget(description);
+    heroText->addSpacing(18);
+    heroText->addWidget(exploreButton);
+    heroText->addStretch();
 
-    QHBoxLayout* cards = new QHBoxLayout();
-    cards->setSpacing(18);
+    DiyaWidget *diya = new DiyaWidget;
 
-    cards->addWidget(createCard(
-        "🐦", "Kag Tihar",
-        "Honoring crows, the messengers of good fortune."));
+    heroLayout->addLayout(heroText, 2);
+    heroLayout->addWidget(diya, 1, Qt::AlignCenter);
 
-    cards->addWidget(createCard(
-        "🐕", "Kukur Tihar",
-        "Celebrating our loyal friends."));
+    mainLayout->addWidget(hero);
 
-    cards->addWidget(createCard(
-        "🐄", "Gai Tihar",
-        "Worshipping cows, the symbols of kindness."));
+    // Festival highlights
+    QLabel *highlightsTitle = new QLabel("Experience the Celebrations");
+    highlightsTitle->setStyleSheet(
+        "font-size: 25px; font-weight: bold;"
+        "color: #8E352F;");
 
-    cards->addWidget(createCard(
-        "🪔", "Laxmi Puja",
-        "Welcoming Goddess Laxmi for prosperity."));
+    mainLayout->addWidget(highlightsTitle);
 
-    mainLayout->addLayout(cards);
+    QGridLayout *cardsLayout = new QGridLayout;
+    cardsLayout->setSpacing(15);
 
-    // ABOUT SECTION
-    mainLayout->addSpacing(20);
+    cardsLayout->addWidget(
+        createCard("🐦", "Kag Tihar",
+                   "The first day is dedicated to crows, messengers of good news."),
+        0, 0);
 
-    QHBoxLayout* aboutLayout = new QHBoxLayout();
+    cardsLayout->addWidget(
+        createCard("🐕", "Kukur Tihar",
+                   "Dogs are worshipped and celebrated for their loyalty."),
+        0, 1);
 
-    QLabel* diyaImage = createLabel("🪔 ✨ 🪔", 45, "#FFC52B");
-    diyaImage->setMinimumWidth(300);
+    cardsLayout->addWidget(
+        createCard("🐄", "Gai Tihar",
+                   "Cows are honoured as symbols of prosperity and abundance."),
+        0, 2);
 
-    QVBoxLayout* aboutText = new QVBoxLayout();
+    cardsLayout->addWidget(
+        createCard("🪔", "Laxmi Puja",
+                   "Homes are decorated with lights to welcome Goddess Laxmi."),
+        1, 0);
 
-    aboutText->addWidget(
-        createLabel("About Tihar", 28, "#FFC52B", true));
+    cardsLayout->addWidget(
+        createCard("🎊", "Bhai Tika",
+                   "A special day celebrating the beautiful bond between siblings."),
+        1, 1);
 
-    aboutText->addWidget(
-        createLabel(
-            "Tihar is one of the most beautiful festivals "
-            "of Nepal.\nIt celebrates lights, love, gratitude "
-            "and family.\n\nLet's spread happiness and "
-            "brightness everywhere!",
-            14, "#E6DDF4"));
+    mainLayout->addLayout(cardsLayout);
 
-    aboutText->addWidget(createButton("Know More  →"));
+    // About section
+    QFrame *aboutBox = new QFrame;
+    aboutBox->setStyleSheet(
+        "QFrame { background-color: #52704C;"
+        "border-radius: 15px; }");
 
-    aboutLayout->addWidget(diyaImage);
-    aboutLayout->addLayout(aboutText);
+    QVBoxLayout *aboutLayout = new QVBoxLayout(aboutBox);
+    aboutLayout->setContentsMargins(22, 18, 22, 18);
 
-    mainLayout->addLayout(aboutLayout);
+    QLabel *aboutTitle = new QLabel("The Beauty of Tihar");
+    aboutTitle->setStyleSheet(
+        "color: white; font-size: 22px;"
+        "font-weight: bold; border: none;");
 
-    // FOOTER
-    mainLayout->addStretch();
+    QLabel *aboutText = new QLabel(
+        "Tihar is one of Nepal's most loved festivals. "
+        "It brings families and communities together "
+        "through lights, music, traditions, and joy.");
+    aboutText->setWordWrap(true);
+    aboutText->setStyleSheet(
+        "color: #FFF5E8; font-size: 14px; border: none;");
 
-    mainLayout->addWidget(
-        createLabel("🪔  Happy Tihar!  ❤️", 16, "#FFC52B", true));
+    aboutLayout->addWidget(aboutTitle);
+    aboutLayout->addWidget(aboutText);
 
-    mainLayout->addWidget(
-        createLabel("Celebrate. Share. Be Happy.", 12, "#BCA9D8"));
+    mainLayout->addWidget(aboutBox);
+
+    // Footer
+    QLabel *footer = new QLabel(
+        "Made with love for the festival of lights  🪔");
+    footer->setAlignment(Qt::AlignCenter);
+    footer->setStyleSheet(
+        "color: #A83F35; font-size: 13px; padding: 8px;");
+
+    mainLayout->addWidget(footer);
 
     window.show();
 
     return app.exec();
 }
+
+
+
+
+
+

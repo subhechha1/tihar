@@ -1,4 +1,6 @@
 
+
+
 cmake_minimum_required(VERSION 3.16)
 
 project(tihar LANGUAGES CXX)
@@ -15,6 +17,5 @@ qt_add_executable(tihar
 )
 
 target_link_libraries(tihar PRIVATE Qt6::Widgets)
-
 
 
